@@ -241,6 +241,16 @@ const App = (() => {
   });
 
   // ---------- init ----------
+  const missing = [];
+  if (typeof ePub === 'undefined') missing.push('epub.js (EPUB support)');
+  if (typeof pdfjsLib === 'undefined') missing.push('pdf.js (PDF support)');
+  if (missing.length) {
+    const banner = document.getElementById('import-error-banner');
+    banner.innerHTML = `<strong>Some libraries failed to load from the CDN.</strong>` +
+      `<ul><li>Missing: ${missing.join(', ')}</li><li>Check your internet connection and reload the page.</li></ul>`;
+    banner.classList.remove('hidden');
+  }
+
   Library.render();
 
   return { closeDrawers };
@@ -250,5 +260,11 @@ const App = (() => {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloaded) return;
+    reloaded = true;
+    window.location.reload();
   });
 }
