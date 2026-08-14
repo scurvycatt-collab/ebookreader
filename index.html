@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Stacks — Reader</title>
+<meta name="theme-color" content="#171512">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ===== LIBRARY VIEW ===== -->
+<section id="view-library" class="view view--active">
+  <header class="lib-header">
+    <div class="lib-header__brand">
+      <span class="lib-header__mark">St.</span>
+      <h1 class="lib-header__title">Stacks</h1>
+    </div>
+    <div class="lib-header__actions">
+      <button id="btn-import" class="btn btn--accent" title="Add books">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 4v16m-8-8h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Add books
+      </button>
+      <input id="file-input" type="file" accept=".epub,.pdf,application/epub+zip,application/pdf" multiple hidden>
+    </div>
+  </header>
+
+  <div id="import-progress" class="import-progress hidden">
+    <div class="import-progress__bar"><div id="import-progress-fill" class="import-progress__fill"></div></div>
+    <span id="import-progress-label">Adding books…</span>
+  </div>
+
+  <div id="library-empty" class="library-empty hidden">
+    <div class="library-empty__glyph">＋</div>
+    <h2>Your shelf is empty</h2>
+    <p>Add EPUB or PDF files from your tablet's storage to start reading.</p>
+    <button class="btn btn--accent" onclick="document.getElementById('file-input').click()">Add books</button>
+  </div>
+
+  <div id="library-grid" class="library-grid"></div>
+</section>
+
+<!-- ===== READER VIEW ===== -->
+<section id="view-reader" class="view">
+  <div id="reader-surface" class="reader-surface">
+    <!-- format-specific reader mounts here -->
+    <div id="epub-viewer" class="epub-viewer"></div>
+    <div id="pdf-viewer" class="pdf-viewer">
+      <div id="pdf-page-wrap" class="pdf-page-wrap">
+        <canvas id="pdf-canvas-a"></canvas>
+        <canvas id="pdf-canvas-b" class="hidden"></canvas>
+      </div>
+    </div>
+
+    <!-- tap zones for page turning -->
+    <div class="tap-zones">
+      <div id="tap-prev" class="tap-zone tap-zone--side"></div>
+      <div id="tap-toggle" class="tap-zone tap-zone--center"></div>
+      <div id="tap-next" class="tap-zone tap-zone--side"></div>
+    </div>
+  </div>
+
+  <!-- top chrome -->
+  <header id="reader-topbar" class="reader-topbar">
+    <button id="btn-back" class="icon-btn" title="Back to library">
+      <svg viewBox="0 0 24 24" width="22" height="22"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <span id="reader-title" class="reader-title">Untitled</span>
+    <div class="reader-topbar__actions">
+      <button id="btn-toc" class="icon-btn" title="Contents"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 6h16M4 12h16M4 18h10"/></svg></button>
+      <button id="btn-settings" class="icon-btn" title="Display settings"><svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" d="M12 2v3m0 14v3M4.2 4.2l2.1 2.1m11.4 11.4l2.1 2.1M2 12h3m14 0h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></button>
+    </div>
+  </header>
+
+  <!-- bottom chrome -->
+  <footer id="reader-bottombar" class="reader-bottombar">
+    <span id="progress-label-left" class="progress-label">1</span>
+    <input id="progress-slider" class="progress-slider" type="range" min="0" max="1000" value="0">
+    <span id="progress-label-right" class="progress-label">100%</span>
+  </footer>
+
+  <!-- TOC drawer -->
+  <div id="toc-drawer" class="drawer">
+    <div class="drawer__header">
+      <h3>Contents</h3>
+      <button id="btn-toc-close" class="icon-btn">✕</button>
+    </div>
+    <ul id="toc-list" class="toc-list"></ul>
+  </div>
+
+  <!-- Settings drawer -->
+  <div id="settings-drawer" class="drawer drawer--right">
+    <div class="drawer__header">
+      <h3>Display</h3>
+      <button id="btn-settings-close" class="icon-btn">✕</button>
+    </div>
+
+    <div class="settings-group" id="settings-epub-only">
+      <label class="settings-label">Text size</label>
+      <div class="stepper">
+        <button id="font-dec" class="stepper__btn">A−</button>
+        <span id="font-size-label" class="stepper__value">100%</span>
+        <button id="font-inc" class="stepper__btn">A+</button>
+      </div>
+
+      <label class="settings-label">Line spacing</label>
+      <div class="stepper">
+        <button id="line-dec" class="stepper__btn">−</button>
+        <span id="line-spacing-label" class="stepper__value">1.4</span>
+        <button id="line-inc" class="stepper__btn">+</button>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <label class="settings-label">Theme</label>
+      <div class="theme-picker">
+        <button class="theme-swatch theme-swatch--light" data-theme="light" title="Light"></button>
+        <button class="theme-swatch theme-swatch--sepia" data-theme="sepia" title="Sepia"></button>
+        <button class="theme-swatch theme-swatch--dark" data-theme="dark" title="Dark"></button>
+      </div>
+    </div>
+
+    <div class="settings-group" id="settings-pdf-only">
+      <label class="settings-label">Page fit</label>
+      <div class="segmented" id="fit-mode-group">
+        <button class="segmented__btn" data-fit="width">Fit width</button>
+        <button class="segmented__btn" data-fit="page">Fit page</button>
+      </div>
+
+      <label class="settings-label">Layout</label>
+      <div class="segmented" id="spread-mode-group">
+        <button class="segmented__btn" data-spread="single">Single page</button>
+        <button class="segmented__btn" data-spread="double">Two-page spread</button>
+      </div>
+
+      <label class="settings-label">Reading direction</label>
+      <div class="segmented" id="direction-group">
+        <button class="segmented__btn" data-dir="ltr">Left → Right</button>
+        <button class="segmented__btn" data-dir="rtl">Right → Left (Manga)</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="drawer-scrim" class="drawer-scrim"></div>
+</section>
+
+<!-- context menu for library cards -->
+<div id="card-menu" class="card-menu hidden">
+  <button id="card-menu-delete" class="card-menu__item">Remove from Stacks</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/epubjs/0.3.93/epub.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js";</script>
+<script src="js/db.js"></script>
+<script src="js/library.js"></script>
+<script src="js/reader-epub.js"></script>
+<script src="js/reader-pdf.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
